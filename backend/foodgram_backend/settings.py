@@ -19,7 +19,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'api',
+    'recipes',
     'users'
 ]
 
@@ -82,6 +84,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ]
+}
+
+
+AUTH_USER_MODEL = 'users.MyUserModel'
 
 LANGUAGE_CODE = 'en-us'
 
@@ -92,8 +102,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
-REST_FRAMEWORK = {}
 
 STATIC_URL = '/static/'
 
