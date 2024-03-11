@@ -10,7 +10,7 @@ from .models import MyUserModel, Subscribe
 from .serializers import (
     UserSerializer,
     UserTokenSerializer,
-    SuscribeCreateSerializer,
+    SubscribeSerializer,
     SetPasswordSerializer
 )
 from .permissions import IsAuthenticated
@@ -39,22 +39,28 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(methods=['post', 'delete'], detail=False,
-            permission_classes=(IsAuthenticated,))
+    @action(methods=['post', 'delete'], detail=True,
+            permission_classes=(IsAuthenticated,),
+            url_path='subscribe', url_name='subscribe')
     def subscribe(self, request, **kwargs):
         subscriber = request.user
-        author_id = self.kwargs.get('id')
-        author = get_object_or_404(MyUserModel, id=author_id)
+        author = get_object_or_404(MyUserModel, id=kwargs['pk'])
+        subscribe_chek = Subscribe.objects.filter(subscriber=subscriber,
+                                                  author=author)
 
         if request.method == 'POST':
-            serializer = SuscribeCreateSerializer(author,
-                                                  data=request.data,
-                                                  context={"request": request})
-            serializer.is_valid(raise_exception=True)
-            Subscribe.objects.create(subscriber=subscriber, author=author)
+            if subscribe_chek.exists() or subscriber == author:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            serializer = SubscribeSerializer(author,
+                                             context={"request": request})
+            Subscribe.objects.create(
+                subscriber=subscriber, author=author
+            ).save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         if request.method == 'DELETE':
+            if not subscribe_chek.exists() or subscriber == author:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
             subscription = get_object_or_404(Subscribe,
                                              subscriber=subscriber,
                                              author=author)
@@ -63,15 +69,16 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'],
             detail=False,
-            permission_classes=(IsAuthenticated,))
-    def suscriptions(self, request):
+            permission_classes=(IsAuthenticated,),
+            url_path='subscriptions', url_name='subscriptions',)
+    def subscriptions(self, request):
         queryset = MyUserModel.objects.filter(
             subscribe__subscriber=self.request.user
         )
         if queryset:
             pages = self.paginate_queryset(queryset)
-            serializer = SuscribeCreateSerializer(pages, many=True,
-                                                  context={'request': request})
+            serializer = SubscribeSerializer(pages, many=True,
+                                             context={'request': request})
             return self.get_paginated_response(serializer.data)
         return Response('Вы ни на кого не подписаны.',
                         status=status.HTTP_400_BAD_REQUEST)
