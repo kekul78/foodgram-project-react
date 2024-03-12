@@ -16,7 +16,7 @@ class Tag(models.Model):
         max_length=7,
         unique=True,
         blank=False
-        )
+    )
     slug = models.SlugField(
         verbose_name='Идентификатор',
         max_length=200,

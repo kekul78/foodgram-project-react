@@ -34,8 +34,8 @@ class UserSerializer(serializers.ModelSerializer):
         if subscriber is None or subscriber.is_anonymous:
             return False
         return (
-              Subscribe.objects.filter(subscriber=subscriber, author=obj.id)
-              .exists()
+            Subscribe.objects.filter(subscriber=subscriber, author=obj.id)
+            .exists()
         )
 
 
