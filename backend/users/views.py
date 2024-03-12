@@ -6,11 +6,11 @@ from rest_framework.authtoken.models import Token
 from django.shortcuts import get_object_or_404
 
 from api.paginators import PagePagination
+from api.serializers import SubscribeSerializer
 from .models import MyUserModel, Subscribe
 from .serializers import (
     UserSerializer,
     UserTokenSerializer,
-    SubscribeSerializer,
     SetPasswordSerializer
 )
 from .permissions import IsAuthenticated

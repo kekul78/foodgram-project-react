@@ -63,7 +63,7 @@ class Subscribe(models.Model):
             models.UniqueConstraint(fields=['author', 'subscriber'],
                                     name='unique_suscribe')
         ]
-        verbose_name = 'Подписка'
+        verbose_name = 'подписка'
         verbose_name_plural = 'Подписки'
 
     def __str__(self):

@@ -31,7 +31,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         subscriber = self.context.get('request').user
-        if subscriber.is_anonymous:
+        if subscriber is None or subscriber.is_anonymous:
             return False
         return (
               Subscribe.objects.filter(subscriber=subscriber, author=obj.id)
@@ -75,17 +75,3 @@ class SetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'Ошибка, проверьте правильность пароля!')
         return data
-
-
-class SubscribeSerializer(UserSerializer):
-
-    class Meta:
-        model = MyUserModel
-        fields = (
-            'email',
-            'id',
-            'username',
-            'first_name',
-            'last_name',
-            "is_subscribed",
-        )

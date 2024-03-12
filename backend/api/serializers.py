@@ -1,8 +1,11 @@
 from rest_framework import serializers
 from drf_extra_fields.fields import Base64ImageField
 
-from recipes.models import Tag, Ingredient, Recipe, RecipeIngredient
-from users.serializers import UserGetSerializer
+from recipes.models import (
+    Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
+)
+from users.serializers import UserSerializer, UserGetSerializer
+from users.models import MyUserModel
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -18,10 +21,10 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class IngridientGetAmountSerializer(serializers.ModelSerializer):
-    id = serializers.ReadOnlyField(source='ingredient.id')
-    name = serializers.ReadOnlyField(source='ingredient.name')
+    id = serializers.ReadOnlyField(source='ingredients.id')
+    name = serializers.ReadOnlyField(source='ingredients.name')
     measurement_unit = serializers.ReadOnlyField(
-        source='ingredient.measurement_unit'
+        source='ingredients.measurement_unit'
     )
 
     class Meta:
@@ -57,18 +60,40 @@ class IngridientCreateAmountSerializer(serializers.ModelSerializer):
 class RecipeGetSerializer(serializers.ModelSerializer):
     author = UserGetSerializer()
     tags = TagSerializer(many=True, read_only=True)
-    ingridients = IngridientGetAmountSerializer(many=True, read_only=True)
+    ingredients = IngridientGetAmountSerializer(many=True,
+                                                read_only=True,
+                                                source='recipe')
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = ('id',
                   'tags',
                   'author',
-                  'ingridients',
+                  'ingredients',
                   'name',
                   'text',
                   'image',
+                  'is_favorited',
+                  'is_in_shopping_cart',
                   'cooking_time')
+
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        if request is None or request.user.is_anonymous:
+            return False
+        return Favorite.objects.filter(
+            user=request.user, recipe=obj
+        ).exists()
+
+    def get_is_in_shopping_cart(self, obj):
+        request = self.context.get('request')
+        if request is None or request.user.is_anonymous:
+            return False
+        return ShoppingCart.objects.filter(
+            user=request.user, recipe=obj
+        ).exists()
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
@@ -168,3 +193,53 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         return RecipeGetSerializer(instance).data
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    image = Base64ImageField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
+
+
+class ShortRecipeSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class SubscribeSerializer(UserSerializer):
+    recipes = serializers.SerializerMethodField(read_only=True)
+    recipes_count = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = MyUserModel
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count'
+        )
+
+    def get_recipes(self, obj):
+        request = self.context.get('request')
+        recipes = obj.recipes.all()
+        recipes_limit = request.query_params.get('recipes_limit')
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
+        return ShortRecipeSerializer(recipes, many=True).data
+
+    @staticmethod
+    def get_recipes_count(obj):
+        return obj.recipes.count()
