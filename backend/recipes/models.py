@@ -1,27 +1,26 @@
 from django.db import models
 from django.core.validators import MinValueValidator
+from colorfield.fields import ColorField
 
+import foodgram_backend.constants as const
 from users.models import MyUserModel
 
 
 class Tag(models.Model):
     name = models.CharField(
         verbose_name='Название',
-        max_length=200,
+        max_length=const.BIG_MAX_LENGTH,
         unique=True,
-        blank=False
     )
-    color = models.CharField(
+    color = ColorField(
         verbose_name='Цвет',
-        max_length=7,
+        max_length=const.MAX_COLOR_LENGTH,
         unique=True,
-        blank=False
     )
     slug = models.SlugField(
         verbose_name='Идентификатор',
-        max_length=200,
+        max_length=const.BIG_MAX_LENGTH,
         unique=True,
-        blank=False,
         db_index=True
     )
 
@@ -37,17 +36,22 @@ class Tag(models.Model):
 class Ingredient(models.Model):
     name = models.CharField(
         verbose_name='Название',
-        max_length=200,
+        max_length=const.BIG_MAX_LENGTH,
     )
     measurement_unit = models.CharField(
         verbose_name='Еденица измерения',
-        max_length=200,
+        max_length=const.BIG_MAX_LENGTH,
     )
 
     class Meta:
         verbose_name = 'ингредиент'
         verbose_name_plural = 'Ингредиенты'
         ordering = ("name",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'measurement_unit'], name='unique_ingredient'
+            )
+        ]
 
     def __str__(self):
         return f'{self.name}, {self.measurement_unit}'
@@ -61,8 +65,7 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         verbose_name='Название',
-        max_length=200,
-        blank=False,
+        max_length=const.BIG_MAX_LENGTH,
         unique=True,
         db_index=True
     )
@@ -132,25 +135,35 @@ class RecipeIngredient(models.Model):
     class Meta:
         verbose_name = 'ингридиент в рецепте'
         verbose_name_plural = 'Ингридиенты в рецепте'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('recipe', 'ingredients'),
+                name='unique_ingredients_in_the_recipe'
+            )
+        ]
 
     def __str__(self):
         return f'{self.ingredients}, кол-во: {self.amount}'
 
 
-class Favorite(models.Model):
+class AbstractModel(models.Model):
 
     user = models.ForeignKey(
         MyUserModel,
         on_delete=models.CASCADE,
-        related_name='favorites',
         verbose_name='Пользователь'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='favorites',
         verbose_name='Рецепт'
     )
+
+    class Meta:
+        abstract = True
+
+
+class Favorite(AbstractModel):
 
     class Meta:
         verbose_name = 'избранное'
@@ -160,23 +173,18 @@ class Favorite(models.Model):
                 fields=['user', 'recipe'], name='unique_favorite'
             )
         ]
+        default_related_name = 'favorites'
 
     def __str__(self):
         return f'{self.user} {self.recipe}'
 
 
-class ShoppingCart(models.Model):
+class ShoppingCart(AbstractModel):
     user = models.ForeignKey(
         MyUserModel,
         on_delete=models.CASCADE,
         related_name='shopping_user',
         verbose_name='Пользователь'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='shopping_recipe',
-        verbose_name='Рецепт'
     )
 
     class Meta:
@@ -187,6 +195,7 @@ class ShoppingCart(models.Model):
                 fields=['user', 'recipe'], name='unique_shoppingcart'
             )
         ]
+        default_related_name = 'shopping_recipe'
 
     def __str__(self):
         return f'{self.user} {self.recipe}'

@@ -1,24 +1,23 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.authtoken.models import Token
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from django.shortcuts import get_object_or_404
+from djoser.views import UserViewSet
 
 from api.paginators import PagePagination
 from api.serializers import SubscribeSerializer
 from .models import MyUserModel, Subscribe
-from .serializers import (
-    UserSerializer,
-    UserTokenSerializer,
-    SetPasswordSerializer
-)
-from .permissions import IsAuthenticated
+from .serializers import (CustomUserSerializer)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class CustomUserViewSet(UserViewSet):
     queryset = MyUserModel.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = CustomUserSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     pagination_class = PagePagination
 
     @action(methods=['get'], detail=False,
@@ -29,25 +28,20 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=['post'], detail=False,
-            permission_classes=(IsAuthenticated,))
-    def set_password(self, request):
-        user = request.user
-        serializer = SetPasswordSerializer(user, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user.password = request.data['new_password']
-        user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(methods=['post', 'delete'], detail=True,
-            permission_classes=(IsAuthenticated,),
-            url_path='subscribe', url_name='subscribe')
-    def subscribe(self, request, **kwargs):
+    @staticmethod
+    def get_subscribe_data(request, id):
         subscriber = request.user
-        author = get_object_or_404(MyUserModel, id=kwargs['pk'])
+        author = get_object_or_404(MyUserModel, id=id)
         subscribe_chek = Subscribe.objects.filter(subscriber=subscriber,
                                                   author=author)
+        return subscriber, author, subscribe_chek
 
+    @action(methods=['post'], detail=True,
+            permission_classes=(IsAuthenticated,),
+            url_path='subscribe', url_name='subscribe')
+    def subscribe(self, request, id):
+        subscriber, author, subscribe_chek = self.get_subscribe_data(request,
+                                                                     id)
         if request.method == 'POST':
             if subscribe_chek.exists() or subscriber == author:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -58,14 +52,17 @@ class UserViewSet(viewsets.ModelViewSet):
             ).save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'DELETE':
-            if not subscribe_chek.exists() or subscriber == author:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            subscription = get_object_or_404(Subscribe,
-                                             subscriber=subscriber,
-                                             author=author)
-            subscription.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    @subscribe.mapping.delete
+    def delete_subscribe(self, request, id):
+        subscriber, author, subscribe_chek = self.get_subscribe_data(request,
+                                                                     id)
+        if not subscribe_chek.exists() or subscriber == author:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        subscription = get_object_or_404(Subscribe,
+                                         subscriber=subscriber,
+                                         author=author)
+        subscription.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['get'],
             detail=False,
@@ -82,30 +79,3 @@ class UserViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         return Response('Вы ни на кого не подписаны.',
                         status=status.HTTP_400_BAD_REQUEST)
-
-
-class GetTokenView(APIView):
-    permission_classes = (permissions.AllowAny,)
-
-    def post(self, request):
-        serializer = UserTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.data['email']
-        user = get_object_or_404(MyUserModel, email=email)
-        try:
-            token = Token.objects.get(user=user)
-            token.delete()
-            token = Token.objects.create(user=user)
-        except Token.DoesNotExist:
-            token = Token.objects.create(user=user)
-        return Response({'auth_token': str(token)},
-                        status=status.HTTP_200_OK)
-
-
-class DeleteTokenView(APIView):
-    permission_classes = (IsAuthenticated,)
-
-    def post(self, request):
-        token = Token.objects.get(key=request.auth)
-        token.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)

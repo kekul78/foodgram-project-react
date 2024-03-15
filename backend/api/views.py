@@ -1,13 +1,14 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    IsAuthenticated, IsAuthenticatedOrReadOnly
+)
 from rest_framework.decorators import action
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 
-from users.permissions import IsAuthenticated
 from recipes.models import (
     Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeIngredient
 )
@@ -23,20 +24,18 @@ from .serializers import (
 )
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
-    http_method_names = ['get']
 
 
-class IngredientViewSet(viewsets.ModelViewSet):
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (IngredientSearchFilter,)
     search_fields = ('^name',)
-    http_method_names = ['get']
 
 
 class RecipeView(viewsets.ModelViewSet):
@@ -50,64 +49,64 @@ class RecipeView(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.request.method in permissions.SAFE_METHODS:
             return RecipeGetSerializer
-        else:
-            return RecipeCreateSerializer
+        return RecipeCreateSerializer
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context.update({'request': self.request})
         return context
 
-    @action(methods=['post', 'delete'], detail=True,
-            permission_classes=(IsAuthenticated,))
-    def favorite(self, request, **kwargs):
+    @action(methods=['post'], detail=True,
+            permission_classes=(IsAuthenticated,),
+            url_path='favorite', url_name='favorite')
+    def favorite(self, request, pk):
         user = request.user
+        if not Recipe.objects.filter(id=pk).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        if request.method == 'POST':
-            if not Recipe.objects.filter(id=kwargs['pk']).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        recipe = Recipe.objects.get(id=pk)
+        if Favorite.objects.filter(user=user, recipe=recipe).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            recipe = Recipe.objects.get(id=kwargs['pk'])
-            if Favorite.objects.filter(user=user, recipe=recipe).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        Favorite.objects.create(user=user, recipe=recipe)
+        serializer = FavoriteSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-            Favorite.objects.create(user=user, recipe=recipe)
-            serializer = FavoriteSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        if request.method == 'DELETE':
-            recipe = get_object_or_404(Recipe, id=kwargs['pk'])
-            favorite_chek = Favorite.objects.filter(user=user, recipe=recipe)
-            if not favorite_chek.exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            favorite_chek.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-
-    @action(methods=['post', 'delete'], detail=True,
-            permission_classes=(IsAuthenticated,))
-    def shopping_cart(self, request, **kwargs):
+    @favorite.mapping.delete
+    def delete_favorite(self, request, pk):
         user = request.user
+        recipe = get_object_or_404(Recipe, id=pk)
+        favorite_chek = Favorite.objects.filter(user=user, recipe=recipe)
+        if not favorite_chek.exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        favorite_chek.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-        if request.method == 'POST':
-            if not Recipe.objects.filter(id=kwargs['pk']).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+    @action(methods=['post'], detail=True,
+            permission_classes=(IsAuthenticated,))
+    def shopping_cart(self, request, pk):
+        user = request.user
+        if not Recipe.objects.filter(id=pk).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            recipe = Recipe.objects.get(id=kwargs['pk'])
-            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
+        recipe = Recipe.objects.get(id=pk)
+        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-            ShoppingCart.objects.create(user=user, recipe=recipe)
-            serializer = FavoriteSerializer(recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        ShoppingCart.objects.create(user=user, recipe=recipe)
+        serializer = FavoriteSerializer(recipe)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if request.method == 'DELETE':
-            recipe = get_object_or_404(Recipe, id=kwargs['pk'])
-            shop_cart_chek = ShoppingCart.objects.filter(user=user,
-                                                         recipe=recipe)
-            if not shop_cart_chek.exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            shop_cart_chek.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+    @shopping_cart.mapping.delete
+    def delete_shopping_cart(self, request, pk):
+        user = request.user
+        recipe = get_object_or_404(Recipe, id=pk)
+        shop_cart_chek = ShoppingCart.objects.filter(user=user,
+                                                     recipe=recipe)
+        if not shop_cart_chek.exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        shop_cart_chek.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         methods=('get',), detail=False,

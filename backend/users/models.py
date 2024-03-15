@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
+import foodgram_backend.constants as const
 from .validators import validate_forbidden_username
 
 
@@ -8,29 +9,29 @@ class MyUserModel(AbstractUser):
     email = models.EmailField(
         verbose_name='E-mail',
         unique=True,
-        max_length=254,
+        max_length=const.MAX_EMAIL_LENGTH,
         help_text="Введите адрес эллектронной почты"
     )
     username = models.CharField(
         verbose_name='Логин',
         unique=True,
-        max_length=150,
+        max_length=const.MAX_LENGTH,
         help_text="Введите логин",
         validators=[validate_forbidden_username]
     )
     first_name = models.CharField(
         verbose_name='Имя',
-        max_length=150,
+        max_length=const.MAX_LENGTH,
         help_text="Введите имя",
     )
     last_name = models.CharField(
         verbose_name='Фамилия',
-        max_length=150,
+        max_length=const.MAX_LENGTH,
         help_text="Введите фамилию",
     )
     password = models.CharField(
         verbose_name='Пароль',
-        max_length=150,
+        max_length=const.MAX_LENGTH,
         help_text="Введите пароль",
     )
 

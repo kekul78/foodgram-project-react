@@ -4,7 +4,7 @@ from drf_extra_fields.fields import Base64ImageField
 from recipes.models import (
     Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
 )
-from users.serializers import UserSerializer, UserGetSerializer
+from users.serializers import CustomUserSerializer, UserGetSerializer
 from users.models import MyUserModel
 
 
@@ -215,7 +215,7 @@ class ShortRecipeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'image', 'cooking_time')
 
 
-class SubscribeSerializer(UserSerializer):
+class SubscribeSerializer(CustomUserSerializer):
     recipes = serializers.SerializerMethodField(read_only=True)
     recipes_count = serializers.SerializerMethodField(read_only=True)
 
