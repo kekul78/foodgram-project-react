@@ -84,3 +84,14 @@ docker-compose exec backend python manage.py collectstatic
 ## 4. Сайт <a id=8></a>
 
 Адрес сайта: [foodgram.ddnsking.com](https://foodgram.ddnsking.com)
+
+
+## Стек технологий
+
+* Python 3.11.3,
+* Django 3.2,
+* DRF,
+* JWT
+
+Автор: 
+* [Канцулин Данил](https://github.com/kekul78)
