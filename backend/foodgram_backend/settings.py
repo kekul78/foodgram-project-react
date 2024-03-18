@@ -1,14 +1,16 @@
 import os
 from pathlib import Path
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY'),
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['158.160.74.13',
+                 '127.0.0.1',
+                 'localhost',
+                 'foodgram.ddnsking.com']
 
 
 INSTALLED_APPS = [
@@ -57,13 +59,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram_backend.wsgi.application'
 
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'django'),
+        'USER': os.getenv('POSTGRES_USER', 'django'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', 5432)
     }
 }
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -105,7 +118,12 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_URL = '/static/'
+
+MEDIA_URL = '/backend_media/'
+MEDIA_ROOT = '/app/media/'
+
+STATIC_URL = '/backend_static/'
+STATIC_ROOT = '/app/static_django/'
 
 DJOSER = {
     'LOGIN_FIELD': 'email',
