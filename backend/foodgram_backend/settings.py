@@ -12,6 +12,7 @@ ALLOWED_HOSTS = ['158.160.74.13',
                  'localhost',
                  'foodgram.ddnsking.com']
 
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
