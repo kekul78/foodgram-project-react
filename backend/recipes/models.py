@@ -27,7 +27,7 @@ class Tag(models.Model):
     class Meta:
         verbose_name = 'тег'
         verbose_name_plural = 'Теги'
-        ordering = ("name",)
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -46,7 +46,7 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = 'ингредиент'
         verbose_name_plural = 'Ингредиенты'
-        ordering = ("name",)
+        ordering = ('name',)
         constraints = [
             models.UniqueConstraint(
                 fields=['name', 'measurement_unit'], name='unique_ingredient'
@@ -105,7 +105,7 @@ class Recipe(models.Model):
     class Meta:
         verbose_name = 'рецепт'
         verbose_name_plural = 'Рецепты'
-        ordering = ("name",)
+        ordering = ('name',)
 
     def __str__(self):
         return self.name
@@ -180,7 +180,7 @@ class Favorite(AbstractModel):
 
 
 class ShoppingCart(AbstractModel):
-    user = models.ForeignKey(
+    user = models.ForeignKey( #Я переопределяю это поле для конкретного related_name
         MyUserModel,
         on_delete=models.CASCADE,
         related_name='shopping_user',

@@ -46,7 +46,7 @@ class CustomUserViewSet(UserViewSet):
             if subscribe_chek.exists() or subscriber == author:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
             serializer = SubscribeSerializer(author,
-                                             context={"request": request})
+                                             context={'request': request})
             Subscribe.objects.create(
                 subscriber=subscriber, author=author
             ).save()

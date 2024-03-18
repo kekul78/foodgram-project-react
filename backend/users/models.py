@@ -10,30 +10,33 @@ class MyUserModel(AbstractUser):
         verbose_name='E-mail',
         unique=True,
         max_length=const.MAX_EMAIL_LENGTH,
-        help_text="Введите адрес эллектронной почты"
+        help_text='Введите адрес эллектронной почты'
     )
     username = models.CharField(
         verbose_name='Логин',
         unique=True,
         max_length=const.MAX_LENGTH,
-        help_text="Введите логин",
+        help_text='Введите логин',
         validators=[validate_forbidden_username]
     )
     first_name = models.CharField(
         verbose_name='Имя',
         max_length=const.MAX_LENGTH,
-        help_text="Введите имя",
+        help_text='Введите имя',
     )
     last_name = models.CharField(
         verbose_name='Фамилия',
         max_length=const.MAX_LENGTH,
-        help_text="Введите фамилию",
+        help_text='Введите фамилию',
     )
     password = models.CharField(
         verbose_name='Пароль',
         max_length=const.MAX_LENGTH,
-        help_text="Введите пароль",
+        help_text='Введите пароль',
     )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         verbose_name = 'пользователь'
@@ -59,7 +62,7 @@ class Subscribe(models.Model):
     )
 
     class Meta:
-        ordering = ['-id']
+        ordering = ('author',)
         constraints = [
             models.UniqueConstraint(fields=['author', 'subscriber'],
                                     name='unique_suscribe')

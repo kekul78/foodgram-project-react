@@ -108,7 +108,7 @@ REST_FRAMEWORK = {
 
 AUTH_USER_MODEL = 'users.MyUserModel'
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-RU'
 
 TIME_ZONE = 'UTC'
 
