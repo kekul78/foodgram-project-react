@@ -180,8 +180,8 @@ class Favorite(AbstractModel):
 
 
 class ShoppingCart(AbstractModel):
-    user = models.ForeignKey( #Я переопределяю это поле для конкретного related_name
-        MyUserModel,
+    user = models.ForeignKey(   # Я переопределяю это поле
+        MyUserModel,            # для конкретного related_name
         on_delete=models.CASCADE,
         related_name='shopping_user',
         verbose_name='Пользователь'
